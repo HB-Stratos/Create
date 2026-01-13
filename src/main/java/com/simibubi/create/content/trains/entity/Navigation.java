@@ -469,7 +469,14 @@ public class Navigation {
 			search(Double.MAX_VALUE, maxCost, forward, destinations, (distance, cost, reachedVia, currentEntry, globalStation) -> {
 				for (GlobalStation destination : destinations){
 
+					Create.LOGGER.info("    [SEARCH] Checking if {} @ {} matches destination {} @ {}",
+						globalStation. name,
+						globalStation.id.toString().substring(0, 5),
+						destination.name,
+						destination.id.toString().substring(0, 5));
+
 					if (globalStation == destination) {
+						Create.LOGGER.info("    [SEARCH] MATCH FOUND!");
 						Create. LOGGER.info("    [SEARCH] Checking station {} | presentTrain={} | isCurrentStation={}",
 							destination.name + " @ " + destination.id. toString().substring(0, 5),
 							destination.getPresentTrain() != null ? destination.getPresentTrain().name : "NONE",
@@ -480,6 +487,9 @@ public class Navigation {
 							Create.LOGGER.info("    [SEARCH] SKIPPING station {} - train is present but this is NOT current station",
 								destination.name + " @ " + destination.id.toString().substring(0, 5));
 						}}
+					else {
+						Create.LOGGER.info("    [SEARCH] No match (different objects)");
+					}
 
 					if (globalStation == destination) {
 						TrackEdge edge = currentEntry.getSecond();
@@ -583,6 +593,51 @@ public class Navigation {
 		TrackGraph graph = train.graph;
 		if (graph == null)
 			return;
+
+		{
+			TravellingPoint startingPoint = forward ? train.carriages.get(0).getLeadingPoint()
+				: train.carriages.get(train.carriages.size() - 1).getTrailingPoint();
+
+			TrackNode initialNode1 = forward ? startingPoint.node1 : startingPoint.node2;
+			TrackNode initialNode2 = forward ? startingPoint.node2 : startingPoint.node1;
+			TrackEdge initialEdge = graph.getConnectionsFrom(initialNode1).get(initialNode2);
+
+			Create.LOGGER.info("=== SEARCH START for train {} ===", train.name);
+			Create.LOGGER.info("  Starting position on edge: {}", forward ? startingPoint.position : initialEdge.getLength() - startingPoint.position);
+			Create.LOGGER.info("  Initial edge length: {}", initialEdge.getLength());
+			Create.LOGGER.info("  Forward: {}", forward);
+			Create.LOGGER.info("  Destinations to find: {}", destinations.size());
+			for (GlobalStation dest : destinations) {
+				Create.LOGGER.info("    - {} @ {} | position on edge: {}",
+					dest.name,
+					dest.id.toString().substring(0, 5),
+					dest.getLocationOn(initialEdge)); // This might be -1 if not on this edge
+			}
+
+			// Check if any destinations are on the initial edge
+			EdgeData initialEdgeData = initialEdge.getEdgeData();
+			if (initialEdgeData.hasPoints()) {
+				for (TrackEdgePoint point : initialEdgeData.getPoints()) {
+					if (point instanceof GlobalStation station) {
+
+
+						double stationPosOnEdge = station.getLocationOn(initialEdge);
+						double trainPosOnEdge = forward ? startingPoint.position : initialEdge.getLength() - startingPoint.position;
+						Create.LOGGER.info("  [INITIAL EDGE] Station {} @ {} is on initial edge at position {} (train at {})",
+							station.name,
+							station.id.toString().substring(0, 5),
+							stationPosOnEdge,
+							trainPosOnEdge);
+						if (destinations.contains(station)) {
+							Create.LOGGER.info("    -> This station IS in the destinations list");
+							if (Math.abs(stationPosOnEdge - trainPosOnEdge) < 1.0) {
+								Create.LOGGER.info("    -> Train is VERY CLOSE to this station (within 1 block)");
+							}
+						}
+					}
+				}
+			}
+		}
 
 		// Cache the list of track types that the train can travel on
 		Set<TrackMaterial.TrackType> validTypes = new HashSet<>();
@@ -688,13 +743,23 @@ public class Navigation {
 					}
 					// === END INSTRUMENTATION ===
 
-					if (presentTrain != null && !isOwnStation)
-						initialPenalty += Train.Penalties.STATION_WITH_TRAIN;
+					Create.LOGGER.info("  [INITIAL EDGE EVAL] Evaluating station {} @ {} | presentTrain={} | isOwnStation={} | position={}",
+						station.name,
+						station.id.toString().substring(0, 5),
+						presentTrain != null ? presentTrain.name :  "NONE",
+						isOwnStation,
+						station.getLocationOn(initialEdge));
+
+					if (presentTrain != null && !isOwnStation){
+						Create.LOGGER. info("    [INITIAL EDGE EVAL] Adding STATION_WITH_TRAIN penalty");
+						initialPenalty += Train.Penalties.STATION_WITH_TRAIN;}
 					if (station.canApproachFrom(initialNode2) && stationTest.test(distanceToNode2, distanceToNode2 + initialPenalty, reachedVia,
-							Pair.of(Couple.create(initialNode1, initialNode2), initialEdge), station))
-						return;
-					if (!isOwnStation)
-						initialPenalty += Train.Penalties.STATION;
+							Pair.of(Couple.create(initialNode1, initialNode2), initialEdge), station)){
+						Create.LOGGER.info("    [INITIAL EDGE EVAL] Station test returned TRUE - path found on initial edge!");
+						return;}
+					if (!isOwnStation){
+						Create.LOGGER.info("    [INITIAL EDGE EVAL] Adding STATION penalty");
+						initialPenalty += Train.Penalties.STATION;}
 				}
 			}
 		}
