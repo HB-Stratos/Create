@@ -7,6 +7,7 @@ import java.util.Objects;
 
 import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.AllItems;
+import com.simibubi.create.Create;
 import com.simibubi.create.content.trains.display.GlobalTrainDisplayData.TrainDeparturePrediction;
 import com.simibubi.create.content.trains.entity.Carriage;
 import com.simibubi.create.content.trains.entity.Train;
@@ -129,6 +130,21 @@ public class ScheduleRuntime {
 			return;
 
 		train.status.successfulNavigation();
+
+		// === INSTRUMENTATION #3 + #4: Schedule Decision + Overshoot Logging ===
+		GlobalStation currentStation = train.getCurrentStation();
+		Create.LOGGER.info("=== SCHEDULE DECISION for train {} ===", train.name.getString());
+		Create.LOGGER.info("  Train UUID: {}", train.id. toString().substring(0, 5));
+		Create.LOGGER.info("  currentStation field (UUID): {}", train.currentStation);
+		Create.LOGGER.info("  getCurrentStation() result: {}",
+			currentStation != null ? currentStation.name + " @ " + currentStation.id.toString().substring(0, 5) : "NULL");
+		Create.LOGGER.info("  nextPath.destination: {}",
+			nextPath.destination != null ? nextPath.destination.name + " @ " + nextPath.destination.id.toString().substring(0, 5) : "NULL");
+		Create.LOGGER.info("  Are they the same object? {}", currentStation == nextPath.destination);
+		Create.LOGGER.info("  Are they the same UUID?  {}",
+			currentStation != null && nextPath.destination != null && currentStation.id.equals(nextPath.destination.id));
+		// === END INSTRUMENTATION ===
+
 		if (nextPath.destination == train.getCurrentStation()) {
 			state = State.IN_TRANSIT;
 			destinationReached();

@@ -502,6 +502,24 @@ public class Navigation {
 		DiscoveredPath front = results.getFirst();
 		DiscoveredPath back = results.getSecond();
 
+		// ADD THIS LOGGING BLOCK
+		Create.LOGGER.info("=== PATHFINDER RESULTS for train {} ===", train.name.getString());
+		if (front != null) {
+			Create.LOGGER.info("  FRONT path: to {} @ {}, distance={}, cost={}",
+				front.destination.name, front.destination.id.toString().substring(0, 5),
+				front.distance, front.cost);
+		} else {
+			Create.LOGGER.info("  FRONT path: NULL");
+		}
+		if (back != null) {
+			Create.LOGGER.info("  BACK path: to {} @ {}, distance={}, cost={}",
+				back.destination.name, back.destination.id.toString().substring(0, 5),
+				back.distance, back.cost);
+		} else {
+			Create.LOGGER.info("  BACK path: NULL");
+		}
+		// END LOGGING BLOCK
+
 		boolean frontEmpty = front == null;
 		boolean backEmpty = back == null;
 		boolean canDriveForward = train.hasForwardConductor() || train.runtime.paused;
@@ -645,6 +663,18 @@ public class Navigation {
 				if (point instanceof GlobalStation station) {
 					Train presentTrain = station.getPresentTrain();
 					boolean isOwnStation = presentTrain == train;
+
+					// === INSTRUMENTATION: Log station evaluation during pathfinding ===
+					if (station.canApproachFrom(initialNode2)) {
+						Create.LOGGER.info("  [SEARCH] Evaluating station {} @ {} | distance={} | isOwnStation={} | presentTrain={}",
+							station.name,
+							station.id. toString().substring(0, 5),
+							distanceToNode2,
+							isOwnStation,
+							presentTrain != null ? presentTrain.name. getString() : "NONE");
+					}
+					// === END INSTRUMENTATION ===
+
 					if (presentTrain != null && !isOwnStation)
 						initialPenalty += Train.Penalties.STATION_WITH_TRAIN;
 					if (station.canApproachFrom(initialNode2) && stationTest.test(distanceToNode2, distanceToNode2 + initialPenalty, reachedVia,

@@ -139,6 +139,20 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 	@Nullable
 	public Train getPresentTrain() {
 		Train nearestTrain = getNearestTrain();
+
+		// ADD THIS LOGGING BLOCK (can be verbose, remove after debugging)
+		if (nearestTrain != null) {
+			GlobalStation theirStation = nearestTrain. getCurrentStation();
+			Create.LOGGER.debug("  getPresentTrain() for station {} @ {}: nearestTrain={}, their currentStation={}, match={}",
+				this.name,
+				this.id.toString().substring(0, 5),
+				nearestTrain.name. getString(),
+				theirStation != null ? theirStation.id.toString().substring(0, 5) : "NULL",
+				theirStation == this ? "YES" : "NO"
+			);
+		}
+		// END LOGGING BLOCK
+
 		if (nearestTrain == null || nearestTrain.getCurrentStation() != this)
 			return null;
 		return nearestTrain;

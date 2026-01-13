@@ -466,6 +466,32 @@ public class Train {
 				if (!station.canApproachFrom(couple.getSecond()
 					.getSecond()) || navigation.destination != station)
 					return false;
+
+				// === INSTRUMENTATION:  Log arrival details ===
+				Carriage leadingCarriage = carriages.get(0);
+				TravellingPoint leadingPoint = leadingCarriage.getLeadingPoint();
+
+				// Get the station's position on the edge
+				double stationPositionOnEdge = station.getLocationOn(leadingPoint.edge);
+				double trainPositionOnEdge = leadingPoint.position;
+				double edgeLength = leadingPoint.edge.getLength();
+
+				// The overshoot is:  how far past the station marker the train's leading point is
+				// Station position is measured from the END of the edge, train position from the START
+				double stationPosFromStart = edgeLength - stationPositionOnEdge;
+				double overshoot = trainPositionOnEdge - stationPosFromStart;
+
+				Create.LOGGER.info("=== TRAIN ARRIVAL at station '{}' ===", station.name);
+				Create.LOGGER.info("  Train: {} (UUID: {})", name. getString(), id.toString().substring(0, 5));
+				Create.LOGGER. info("  Edge length: {}", edgeLength);
+				Create.LOGGER.info("  Station position on edge (from end): {}", stationPositionOnEdge);
+				Create. LOGGER.info("  Station position on edge (from start): {}", stationPosFromStart);
+				Create.LOGGER.info("  Train leading point position: {}", trainPositionOnEdge);
+				Create. LOGGER.info("  OVERSHOOT AMOUNT: {} blocks", overshoot);
+				Create.LOGGER.info("  Train speed at arrival: {}", speed);
+				Create.LOGGER.info("  navigation.distanceToDestination before zeroing: {}", navigation.distanceToDestination);
+				// === END INSTRUMENTATION ===
+
 				speed = 0;
 				navigation.distanceToDestination = 0;
 				navigation.currentPath.clear();

@@ -97,6 +97,21 @@ public class DestinationInstruction extends TextScheduleInstruction {
 			validStations.add(globalStation);
 		}
 
+		// ADD THIS LOGGING BLOCK
+		Create.LOGGER.info("=== PATHFINDING for train {} to '{}' ===", train.name.getString(), getFilter());
+		Create.LOGGER. info("  Found {} matching stations:", validStations.size());
+		GlobalStation trainCurrentStation = train.getCurrentStation();
+		for (GlobalStation gs : validStations) {
+			Train presentTrain = gs.getPresentTrain();
+			Create.LOGGER.info("    - {} @ {} | presentTrain={} | isCurrentStation={}",
+				gs.name,
+				gs.id.toString().substring(0, 5),
+				presentTrain != null ? presentTrain.name. getString() : "NONE",
+				gs == trainCurrentStation ?  "YES" : "no"
+			);
+		}
+		// END LOGGING BLOCK
+
 		DiscoveredPath best = train.navigation.findPathTo(validStations, Double.MAX_VALUE);
 		if (best == null) {
 			if (anyMatch)
