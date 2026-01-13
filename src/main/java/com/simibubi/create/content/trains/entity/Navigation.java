@@ -237,14 +237,12 @@ public class Navigation {
 		// always overshoot to ensure the travelling point crosses the target
 //		targetDistance += 0.25d;
 
-		// Exception: If we're at the station already (currentStation != null), don't overshoot
-		// as we're just waiting and don't want to drift past the marker
-		if (train.getCurrentStation() == null || targetDistance > 5.0) {
-			targetDistance += 0.25d;
-		} else {
-			// At station - clamp to actual distance to prevent drift
-			targetDistance = Math.max(targetDistance, 0);
+		// Always overshoot for signals to ensure the travelling point crosses them
+		// But DON'T overshoot for stations - the frontSignalListener handles precise stops
+		if (waitingForSignal != null) {
+			targetDistance += 0.25d;  // Only add overshoot for signals, not stations
 		}
+		// For stations (destination != null && waitingForSignal == null), use exact distance
 
 
 		// dont leave until green light
