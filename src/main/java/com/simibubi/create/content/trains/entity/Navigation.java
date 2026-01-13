@@ -235,7 +235,17 @@ public class Navigation {
 		double targetDistance = waitingForSignal != null ? distanceToSignal : distanceToDestination;
 
 		// always overshoot to ensure the travelling point crosses the target
-		targetDistance += 0.25d;
+//		targetDistance += 0.25d;
+
+		// Exception: If we're at the station already (currentStation != null), don't overshoot
+		// as we're just waiting and don't want to drift past the marker
+		if (train.getCurrentStation() == null || targetDistance > 5.0) {
+			targetDistance += 0.25d;
+		} else {
+			// At station - clamp to actual distance to prevent drift
+			targetDistance = Math.max(targetDistance, 0);
+		}
+
 
 		// dont leave until green light
 		if (targetDistance > 1 / 32f && train.getCurrentStation() != null) {
@@ -707,7 +717,7 @@ public class Navigation {
 		if (initialSignalData.hasPoints()) {
 			for (TrackEdgePoint point : initialSignalData.getPoints()) {
 				if (point.getLocationOn(initialEdge) < initialEdge.getLength() - distanceToNode2)
-					continue;
+					continue; //Skip point if is behind the train
 				if (costRelevant && distanceToNode2 + initialPenalty > maxCost)
 					return;
 				if (!point.canNavigateVia(initialNode2))
