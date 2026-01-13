@@ -468,6 +468,19 @@ public class Navigation {
 
 			search(Double.MAX_VALUE, maxCost, forward, destinations, (distance, cost, reachedVia, currentEntry, globalStation) -> {
 				for (GlobalStation destination : destinations){
+
+					if (globalStation == destination) {
+						Create. LOGGER.info("    [SEARCH] Checking station {} | presentTrain={} | isCurrentStation={}",
+							destination.name + " @ " + destination.id. toString().substring(0, 5),
+							destination.getPresentTrain() != null ? destination.getPresentTrain().name : "NONE",
+							destination == train.getCurrentStation());
+
+						// Log if we're skipping this station and why
+						if (destination. getPresentTrain() == train && destination != train.getCurrentStation()) {
+							Create.LOGGER.info("    [SEARCH] SKIPPING station {} - train is present but this is NOT current station",
+								destination.name + " @ " + destination.id.toString().substring(0, 5));
+						}}
+
 					if (globalStation == destination) {
 						TrackEdge edge = currentEntry.getSecond();
 						TrackNode node1 = currentEntry.getFirst()

@@ -112,6 +112,18 @@ public class DestinationInstruction extends TextScheduleInstruction {
 		}
 		// END LOGGING BLOCK
 
+		Create.LOGGER.info("=== DESTINATION INSTRUCTION for train {} ===", train.name);
+		Create.LOGGER.info("  Current station: {}",
+			train.getCurrentStation() != null ?
+				train.getCurrentStation().name + " @ " + train.getCurrentStation().id.toString().substring(0, 5) : "NONE");
+		Create.LOGGER.info("  Valid stations being passed to pathfinding: {}", validStations.size());
+		for (GlobalStation station : validStations) {
+			Create.LOGGER.info("    - {} | occupied by:  {} | is current?  {}",
+				station.name + " @ " + station.id. toString().substring(0, 5),
+				station.getPresentTrain() != null ? station.getPresentTrain().name : "NONE",
+				station == train. getCurrentStation());
+		}
+
 		DiscoveredPath best = train.navigation.findPathTo(validStations, Double.MAX_VALUE);
 		if (best == null) {
 			if (anyMatch)
