@@ -63,7 +63,18 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 		super.read(nbt, registries, migration, dimensions);
 		name = nbt.getString("Name");
 		assembling = nbt.getBoolean("Assembling");
+		
+		// DEBUG: Log station load and WeakReference reset
+		Train previousTrain = nearestTrain != null ? nearestTrain.get() : null;
+		Create.LOGGER.info("[STATION-DEBUG] Loading station '{}' (ID: {}). Previous nearestTrain: {}", 
+			name, id != null ? id.toString().substring(0, 8) : "null",
+			previousTrain != null ? previousTrain.id.toString().substring(0, 8) : "null");
+		
 		nearestTrain = new WeakReference<>(null);
+		
+		// DEBUG: Log after reset
+		Create.LOGGER.info("[STATION-DEBUG] Station '{}' (ID: {}) WeakReference reset to null during deserialization",
+			name, id != null ? id.toString().substring(0, 8) : "null");
 
 		connectedPorts.clear();
 		ListTag portList = nbt.getList("Ports", Tag.TAG_COMPOUND);
@@ -122,23 +133,65 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 
 	public void reserveFor(Train train) {
 		Train nearestTrain = getNearestTrain();
+		
+		// DEBUG: Log reservation attempt
+		String previousTrainId = nearestTrain != null ? nearestTrain.id.toString().substring(0, 8) : "null";
+		String newTrainId = train != null ? train.id.toString().substring(0, 8) : "null";
+		String trainName = train != null && train.name != null ? train.name.getString() : "unknown";
+		
+		Create.LOGGER.info("[STATION-DEBUG] Station '{}' (ID: {}) reserveFor() called. Previous: {}, New: {} ({})",
+			name, id != null ? id.toString().substring(0, 8) : "null",
+			previousTrainId, newTrainId, trainName);
+		
 		if (nearestTrain == null
-			|| nearestTrain.navigation.distanceToDestination > train.navigation.distanceToDestination)
+			|| nearestTrain.navigation.distanceToDestination > train.navigation.distanceToDestination) {
 			this.nearestTrain = new WeakReference<>(train);
+			Create.LOGGER.info("[STATION-DEBUG] Station '{}' reservation updated to train {} ({})",
+				name, newTrainId, trainName);
+		} else {
+			Create.LOGGER.info("[STATION-DEBUG] Station '{}' reservation kept with train {} (closer)",
+				name, previousTrainId);
+		}
 	}
 
 	public void cancelReservation(Train train) {
-		if (nearestTrain.get() == train)
+		String trainId = train != null ? train.id.toString().substring(0, 8) : "null";
+		Train current = nearestTrain.get();
+		String currentId = current != null ? current.id.toString().substring(0, 8) : "null";
+		
+		Create.LOGGER.info("[STATION-DEBUG] Station '{}' (ID: {}) cancelReservation() for train {}. Current: {}",
+			name, id != null ? id.toString().substring(0, 8) : "null", trainId, currentId);
+		
+		if (nearestTrain.get() == train) {
 			nearestTrain = new WeakReference<>(null);
+			Create.LOGGER.info("[STATION-DEBUG] Station '{}' reservation cleared", name);
+		} else {
+			Create.LOGGER.info("[STATION-DEBUG] Station '{}' reservation NOT cleared (different train)", name);
+		}
 	}
 
 	public void trainDeparted(Train train) {
+		String trainId = train != null ? train.id.toString().substring(0, 8) : "null";
+		String trainName = train != null && train.name != null ? train.name.getString() : "unknown";
+		Create.LOGGER.info("[STATION-DEBUG] Station '{}' (ID: {}) trainDeparted() for train {} ({})",
+			name, id != null ? id.toString().substring(0, 8) : "null", trainId, trainName);
 		cancelReservation(train);
 	}
 
 	@Nullable
 	public Train getPresentTrain() {
 		Train nearestTrain = getNearestTrain();
+		
+		// DEBUG: Log query
+		String nearestId = nearestTrain != null ? nearestTrain.id.toString().substring(0, 8) : "null";
+		GlobalStation trainStation = nearestTrain != null ? nearestTrain.getCurrentStation() : null;
+		String trainStationId = trainStation != null && trainStation.id != null ? trainStation.id.toString().substring(0, 8) : "null";
+		boolean isPresent = nearestTrain != null && trainStation == this;
+		
+		Create.LOGGER.debug("[STATION-DEBUG] Station '{}' (ID: {}) getPresentTrain(): nearest={}, trainStation={}, present={}",
+			name, id != null ? id.toString().substring(0, 8) : "null",
+			nearestId, trainStationId, isPresent);
+		
 		if (nearestTrain == null || nearestTrain.getCurrentStation() != this)
 			return null;
 		return nearestTrain;
@@ -162,22 +215,30 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 	public Train getNearestTrain() {
 		Train train = this.nearestTrain.get();
 		
+		/* FIX COMMENTED OUT FOR INSTRUMENTATION - Uncomment to enable auto-revalidation fix
 		// If the WeakReference is null, check if any train thinks it's at this station
 		// This handles the case where the station was reloaded but the train wasn't
 		if (train == null) {
 			train = revalidateTrainPresence();
 		}
+		*/
+		
+		// DEBUG: Log every getNearestTrain() call to track null returns
+		String trainId = train != null ? train.id.toString().substring(0, 8) : "null";
+		String trainName = train != null && train.name != null ? train.name.getString() : "unknown";
+		
+		if (train == null) {
+			Create.LOGGER.debug("[STATION-DEBUG] Station '{}' (ID: {}) getNearestTrain() returned NULL (WeakReference empty)",
+				name, id != null ? id.toString().substring(0, 8) : "null");
+		} else {
+			Create.LOGGER.debug("[STATION-DEBUG] Station '{}' (ID: {}) getNearestTrain() returned train {} ({})",
+				name, id != null ? id.toString().substring(0, 8) : "null", trainId, trainName);
+		}
 		
 		return train;
 	}
 	
-	/**
-	 * Revalidates train presence by checking all trains in the railway manager.
-	 * This is a fallback mechanism to handle desynchronization when the station
-	 * is reloaded from NBT but trains still reference it.
-	 * 
-	 * @return The train that currently thinks it's at this station, or null if none found
-	 */
+	/* FIX COMMENTED OUT FOR INSTRUMENTATION - Revalidation method
 	@Nullable
 	private Train revalidateTrainPresence() {
 		// Iterate through all trains to find one that thinks it's at this station
@@ -195,6 +256,7 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 		}
 		return null;
 	}
+	*/
 
 	public void runMailTransfer() {
 		Train train = getPresentTrain();

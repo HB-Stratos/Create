@@ -272,13 +272,51 @@ public class StationBlockEntity extends SmartBlockEntity implements Transformabl
 		if (station == null)
 			return;
 
+		// DEBUG: Log station tick details
+		String stationName = station.name;
+		String stationId = station.id != null ? station.id.toString().substring(0, 8) : "null";
+		
 		Train imminentTrain = station.getImminentTrain();
+		
+		// DEBUG: Log imminent train query result
+		String imminentId = imminentTrain != null ? imminentTrain.id.toString().substring(0, 8) : "null";
+		String imminentName = imminentTrain != null && imminentTrain.name != null ? imminentTrain.name.getString() : "unknown";
+		
+		Create.LOGGER.debug("[STATION-BE-DEBUG] Station '{}' (ID: {}) tick: imminentTrain = {} ({})",
+			stationName, stationId, imminentId, imminentName);
+		
 		boolean trainPresent = imminentTrain != null && imminentTrain.getCurrentStation() == station;
+		
+		// DEBUG: Log train presence calculation
+		if (imminentTrain != null) {
+			GlobalStation trainStation = imminentTrain.getCurrentStation();
+			String trainStationId = trainStation != null && trainStation.id != null ? trainStation.id.toString().substring(0, 8) : "null";
+			String trainStationName = trainStation != null ? trainStation.name : "unknown";
+			boolean stationMatch = trainStation == station;
+			
+			Create.LOGGER.info("[STATION-BE-DEBUG] Station '{}' (ID: {}): imminent={}, trainCurrentStation={} ({}), match={}, trainPresent={}",
+				stationName, stationId, imminentId, trainStationId, trainStationName, stationMatch, trainPresent);
+			
+			if (!stationMatch && trainStation != null && station.id != null && trainStation.id.equals(station.id)) {
+				Create.LOGGER.warn("[STATION-BE-DEBUG] !!! DESYNC DETECTED !!! Station '{}': trainStation == station is false, but UUIDs match! This is the bug!",
+					stationName);
+			}
+		} else {
+			Create.LOGGER.debug("[STATION-BE-DEBUG] Station '{}' (ID: {}): No imminent train, trainPresent={}",
+				stationName, stationId, trainPresent);
+		}
+		
 		boolean canDisassemble = trainPresent && imminentTrain.canDisassemble();
 		UUID imminentID = imminentTrain != null ? imminentTrain.id : null;
 		boolean trainHasSchedule = trainPresent && imminentTrain.runtime.getSchedule() != null;
 		boolean trainHasAutoSchedule = trainHasSchedule && imminentTrain.runtime.isAutoSchedule;
 		boolean newlyArrived = this.trainPresent != trainPresent;
+		
+		// DEBUG: Log state changes
+		if (newlyArrived) {
+			Create.LOGGER.info("[STATION-BE-DEBUG] Station '{}' (ID: {}): Train presence changed! Was: {}, Now: {}",
+				stationName, stationId, this.trainPresent, trainPresent);
+		}
 
 		if (trainPresent && imminentTrain.runtime.displayLinkUpdateRequested) {
 			DisplayLinkBlock.notifyGatherers(level, worldPosition);

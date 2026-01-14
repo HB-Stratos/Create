@@ -945,20 +945,51 @@ public class Train {
 
 	public void leaveStation() {
 		GlobalStation currentStation = getCurrentStation();
+		
+		// DEBUG: Log station departure
+		String stationId = currentStation != null && currentStation.id != null ? currentStation.id.toString().substring(0, 8) : "null";
+		String stationName = currentStation != null ? currentStation.name : "unknown";
+		String trainId = id != null ? id.toString().substring(0, 8) : "null";
+		String trainName = name != null ? name.getString() : "unknown";
+		
+		Create.LOGGER.info("[TRAIN-DEBUG] Train {} ({}) leaveStation(). Current station: {} ({})",
+			trainId, trainName, stationId, stationName);
+		
 		if (currentStation != null)
 			currentStation.trainDeparted(this);
 		this.currentStation = null;
+		
+		Create.LOGGER.info("[TRAIN-DEBUG] Train {} ({}) currentStation UUID cleared", trainId, trainName);
 	}
 
 	public void arriveAt(GlobalStation station) {
+		String stationId = station != null && station.id != null ? station.id.toString().substring(0, 8) : "null";
+		String stationName = station != null ? station.name : "unknown";
+		String trainId = id != null ? id.toString().substring(0, 8) : "null";
+		String trainName = name != null ? name.getString() : "unknown";
+		
+		Create.LOGGER.info("[TRAIN-DEBUG] Train {} ({}) arriveAt() station {} ({})",
+			trainId, trainName, stationId, stationName);
+		
 		setCurrentStation(station);
 		reservedSignalBlocks.clear();
 		runtime.destinationReached();
 		station.runMailTransfer();
 		ticksSinceLastMailTransfer = 0;
+		
+		Create.LOGGER.info("[TRAIN-DEBUG] Train {} ({}) arrival complete at station {} ({})",
+			trainId, trainName, stationId, stationName);
 	}
 
 	public void setCurrentStation(GlobalStation station) {
+		String stationId = station != null && station.id != null ? station.id.toString().substring(0, 8) : "null";
+		String stationName = station != null ? station.name : "unknown";
+		String trainId = id != null ? id.toString().substring(0, 8) : "null";
+		String trainName = name != null ? name.getString() : "unknown";
+		
+		Create.LOGGER.info("[TRAIN-DEBUG] Train {} ({}) setCurrentStation() to {} ({})",
+			trainId, trainName, stationId, stationName);
+		
 		currentStation = station.id;
 	}
 
@@ -967,7 +998,22 @@ public class Train {
 			return null;
 		if (graph == null)
 			return null;
-		return graph.getPoint(EdgePointType.STATION, currentStation);
+		GlobalStation station = graph.getPoint(EdgePointType.STATION, currentStation);
+		
+		// DEBUG: Log getCurrentStation() results
+		String trainId = id != null ? id.toString().substring(0, 8) : "null";
+		String stationId = station != null && station.id != null ? station.id.toString().substring(0, 8) : "null";
+		String stationName = station != null ? station.name : "unknown";
+		
+		if (station == null && currentStation != null) {
+			Create.LOGGER.warn("[TRAIN-DEBUG] Train {} getCurrentStation() returned NULL but currentStation UUID is {} (station not found in graph!)",
+				trainId, currentStation.toString().substring(0, 8));
+		} else {
+			Create.LOGGER.debug("[TRAIN-DEBUG] Train {} getCurrentStation() = {} ({})",
+				trainId, stationId, stationName);
+		}
+		
+		return station;
 	}
 
 	@Nullable
@@ -1209,6 +1255,12 @@ public class Train {
 		UUID owner = tag.contains("Owner") ? tag.getUUID("Owner") : null;
 		UUID graphId = tag.contains("Graph") ? tag.getUUID("Graph") : null;
 		TrackGraph graph = graphId == null ? null : trackNetworks.get(graphId);
+		
+		// DEBUG: Log train load start
+		Create.LOGGER.info("[TRAIN-DEBUG] Loading train {} from NBT. Graph: {}",
+			id.toString().substring(0, 8),
+			graphId != null ? graphId.toString().substring(0, 8) : "null");
+		
 		List<Carriage> carriages = new ArrayList<>();
 		NBTHelper.iterateCompoundList(tag.getList("Carriages", Tag.TAG_COMPOUND),
 			c -> carriages.add(Carriage.read(c, registries, graph, dimensions)));
@@ -1228,6 +1280,17 @@ public class Train {
 		train.icon = TrainIconType.byId(ResourceLocation.parse(tag.getString("IconType")));
 		train.name = Component.Serializer.fromJson(tag.getString("Name"), registries);
 		train.currentStation = tag.contains("Station") ? tag.getUUID("Station") : null;
+		
+		// DEBUG: Log currentStation UUID loaded
+		if (train.currentStation != null) {
+			Create.LOGGER.info("[TRAIN-DEBUG] Train {} loaded with currentStation UUID: {}",
+				id.toString().substring(0, 8),
+				train.currentStation.toString().substring(0, 8));
+		} else {
+			Create.LOGGER.info("[TRAIN-DEBUG] Train {} loaded with no currentStation",
+				id.toString().substring(0, 8));
+		}
+		
 		train.currentlyBackwards = tag.getBoolean("Backwards");
 		train.derailed = tag.getBoolean("Derailed");
 		train.updateSignalBlocks = tag.getBoolean("UpdateSignals");
@@ -1245,9 +1308,19 @@ public class Train {
 		train.runtime.read(registries, tag.getCompound("Runtime"));
 		train.navigation.read(tag.getCompound("Navigation"), graph, dimensions);
 
-		if (train.getCurrentStation() != null)
-			train.getCurrentStation()
-				.reserveFor(train);
+		// CRITICAL: Re-establish station relationship
+		GlobalStation currentStation = train.getCurrentStation();
+		if (currentStation != null) {
+			Create.LOGGER.info("[TRAIN-DEBUG] Train {} calling reserveFor() on station {} ({})",
+				id.toString().substring(0, 8),
+				currentStation.id != null ? currentStation.id.toString().substring(0, 8) : "null",
+				currentStation.name);
+			currentStation.reserveFor(train);
+		} else if (train.currentStation != null) {
+			Create.LOGGER.warn("[TRAIN-DEBUG] Train {} has currentStation UUID {} but getCurrentStation() returned null!",
+				id.toString().substring(0, 8),
+				train.currentStation.toString().substring(0, 8));
+		}
 
 		return train;
 	}
