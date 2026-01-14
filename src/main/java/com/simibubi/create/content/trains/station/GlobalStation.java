@@ -182,7 +182,9 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 	private Train revalidateTrainPresence() {
 		// Iterate through all trains to find one that thinks it's at this station
 		for (Train train : Create.RAILWAYS.trains.values()) {
-			if (train.getCurrentStation() == this) {
+			GlobalStation currentStation = train.getCurrentStation();
+			// Use UUID comparison for robustness in case of station deserialization
+			if (currentStation != null && currentStation.id.equals(this.id)) {
 				// Re-establish the weak reference
 				this.nearestTrain = new WeakReference<>(train);
 				Create.LOGGER.info("Revalidated train presence at station '{}': Found train '{}' that was desynchronized",
