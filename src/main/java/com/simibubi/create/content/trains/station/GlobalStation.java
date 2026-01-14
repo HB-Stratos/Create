@@ -160,7 +160,37 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 
 	@Nullable
 	public Train getNearestTrain() {
-		return this.nearestTrain.get();
+		Train train = this.nearestTrain.get();
+		
+		// If the WeakReference is null, check if any train thinks it's at this station
+		// This handles the case where the station was reloaded but the train wasn't
+		if (train == null) {
+			train = revalidateTrainPresence();
+		}
+		
+		return train;
+	}
+	
+	/**
+	 * Revalidates train presence by checking all trains in the railway manager.
+	 * This is a fallback mechanism to handle desynchronization when the station
+	 * is reloaded from NBT but trains still reference it.
+	 * 
+	 * @return The train that currently thinks it's at this station, or null if none found
+	 */
+	@Nullable
+	private Train revalidateTrainPresence() {
+		// Iterate through all trains to find one that thinks it's at this station
+		for (Train train : Create.RAILWAYS.trains.values()) {
+			if (train.getCurrentStation() == this) {
+				// Re-establish the weak reference
+				this.nearestTrain = new WeakReference<>(train);
+				Create.LOGGER.info("Revalidated train presence at station '{}': Found train '{}' that was desynchronized",
+					this.name, train.name.getString());
+				return train;
+			}
+		}
+		return null;
 	}
 
 	public void runMailTransfer() {
