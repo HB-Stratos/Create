@@ -187,6 +187,7 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 			if (currentStation != null && currentStation.id.equals(this.id)) {
 				// Re-establish the weak reference
 				this.nearestTrain = new WeakReference<>(train);
+				// Log at INFO level since this is a rare bug that should be tracked
 				Create.LOGGER.info("Revalidated train presence at station '{}': Found train '{}' that was desynchronized",
 					this.name, train.name.getString());
 				return train;
