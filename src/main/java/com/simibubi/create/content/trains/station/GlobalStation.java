@@ -134,23 +134,38 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 	public void reserveFor(Train train) {
 		Train nearestTrain = getNearestTrain();
 		
-		// DEBUG: Log reservation attempt
+		// DEBUG: Log reservation attempt with full details
 		String previousTrainId = nearestTrain != null ? nearestTrain.id.toString().substring(0, 8) : "null";
 		String newTrainId = train != null ? train.id.toString().substring(0, 8) : "null";
 		String trainName = train != null && train.name != null ? train.name.getString() : "unknown";
+		double previousDistance = nearestTrain != null ? nearestTrain.navigation.distanceToDestination : Double.MAX_VALUE;
+		double newDistance = train != null ? train.navigation.distanceToDestination : Double.MAX_VALUE;
+		UUID trainCurrentStation = train != null && train.currentStation != null ? train.currentStation : null;
+		String trainCurrentStationStr = trainCurrentStation != null ? trainCurrentStation.toString().substring(0, 8) : "null";
+		boolean trainNavigationActive = train != null && train.navigation != null && train.navigation.isActive();
 		
-		Create.LOGGER.info("[STATION-DEBUG] Station '{}' (ID: {}) reserveFor() called. Previous: {}, New: {} ({})",
+		Create.LOGGER.info("[STATION-DEBUG] Station '{}' (ID: {}) reserveFor() called. Previous: {} (dist: {}), New: {} ({}, dist: {}, currentStation: {}, navActive: {})",
 			name, id != null ? id.toString().substring(0, 8) : "null",
-			previousTrainId, newTrainId, trainName);
+			previousTrainId, previousDistance, newTrainId, trainName, newDistance, trainCurrentStationStr, trainNavigationActive);
 		
 		if (nearestTrain == null
 			|| nearestTrain.navigation.distanceToDestination > train.navigation.distanceToDestination) {
 			this.nearestTrain = new WeakReference<>(train);
-			Create.LOGGER.info("[STATION-DEBUG] Station '{}' reservation updated to train {} ({})",
-				name, newTrainId, trainName);
+			Create.LOGGER.info("[STATION-DEBUG] Station '{}' reservation UPDATED to train {} ({}). Previous distance: {}, New distance: {}",
+				name, newTrainId, trainName, previousDistance, newDistance);
+			
+			// Log stack trace for reservation changes to identify all code paths
+			if (Create.LOGGER.isDebugEnabled()) {
+				StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+				StringBuilder sb = new StringBuilder("[STATION-DEBUG] Reservation change stack trace:\n");
+				for (int i = 2; i < Math.min(stackTrace.length, 15); i++) {
+					sb.append("  at ").append(stackTrace[i].toString()).append("\n");
+				}
+				Create.LOGGER.debug(sb.toString());
+			}
 		} else {
-			Create.LOGGER.info("[STATION-DEBUG] Station '{}' reservation kept with train {} (closer)",
-				name, previousTrainId);
+			Create.LOGGER.info("[STATION-DEBUG] Station '{}' reservation KEPT with train {} (closer: {} < {})",
+				name, previousTrainId, previousDistance, newDistance);
 		}
 	}
 
@@ -164,9 +179,20 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 		
 		if (nearestTrain.get() == train) {
 			nearestTrain = new WeakReference<>(null);
-			Create.LOGGER.info("[STATION-DEBUG] Station '{}' reservation cleared", name);
+			Create.LOGGER.info("[STATION-DEBUG] Station '{}' reservation CLEARED for train {}", name, trainId);
+			
+			// Log stack trace for cancellation to identify all code paths
+			if (Create.LOGGER.isDebugEnabled()) {
+				StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+				StringBuilder sb = new StringBuilder("[STATION-DEBUG] Cancellation stack trace:\n");
+				for (int i = 2; i < Math.min(stackTrace.length, 15); i++) {
+					sb.append("  at ").append(stackTrace[i].toString()).append("\n");
+				}
+				Create.LOGGER.debug(sb.toString());
+			}
 		} else {
-			Create.LOGGER.info("[STATION-DEBUG] Station '{}' reservation NOT cleared (different train)", name);
+			Create.LOGGER.warn("[STATION-DEBUG] Station '{}' reservation NOT cleared (current: {}, requested: {})",
+				name, currentId, trainId);
 		}
 	}
 

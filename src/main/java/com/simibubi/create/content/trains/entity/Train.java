@@ -946,20 +946,32 @@ public class Train {
 	public void leaveStation() {
 		GlobalStation currentStation = getCurrentStation();
 		
-		// DEBUG: Log station departure
+		// DEBUG: Log station departure with full details
 		String stationId = currentStation != null && currentStation.id != null ? currentStation.id.toString().substring(0, 8) : "null";
 		String stationName = currentStation != null ? currentStation.name : "unknown";
 		String trainId = id != null ? id.toString().substring(0, 8) : "null";
 		String trainName = name != null ? name.getString() : "unknown";
+		String navDest = navigation != null && navigation.destination != null ? (navigation.destination.id != null ? navigation.destination.id.toString().substring(0, 8) : "null") : "null";
 		
-		Create.LOGGER.info("[TRAIN-DEBUG] Train {} ({}) leaveStation(). Current station: {} ({})",
-			trainId, trainName, stationId, stationName);
+		Create.LOGGER.info("[TRAIN-DEBUG] Train {} ({}) leaveStation(). Current station: {} ({}), Navigation dest: {}, Speed: {}",
+			trainId, trainName, stationId, stationName, navDest, speed);
+		
+		// Log stack trace for departures
+		if (Create.LOGGER.isDebugEnabled()) {
+			StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+			StringBuilder sb = new StringBuilder("[TRAIN-DEBUG] Departure stack trace:\n");
+			for (int i = 2; i < Math.min(stackTrace.length, 15); i++) {
+				sb.append("  at ").append(stackTrace[i].toString()).append("\n");
+			}
+			Create.LOGGER.debug(sb.toString());
+		}
 		
 		if (currentStation != null)
 			currentStation.trainDeparted(this);
 		this.currentStation = null;
 		
-		Create.LOGGER.info("[TRAIN-DEBUG] Train {} ({}) currentStation UUID cleared", trainId, trainName);
+		Create.LOGGER.info("[TRAIN-DEBUG] Train {} ({}) currentStation UUID cleared. Station reservation cancelled: {}",
+			trainId, trainName, currentStation != null);
 	}
 
 	public void arriveAt(GlobalStation station) {
@@ -968,8 +980,18 @@ public class Train {
 		String trainId = id != null ? id.toString().substring(0, 8) : "null";
 		String trainName = name != null ? name.getString() : "unknown";
 		
-		Create.LOGGER.info("[TRAIN-DEBUG] Train {} ({}) arriveAt() station {} ({})",
-			trainId, trainName, stationId, stationName);
+		Create.LOGGER.info("[TRAIN-DEBUG] Train {} ({}) arriveAt() station {} ({}). Speed: {}, Status: {}",
+			trainId, trainName, stationId, stationName, speed, status);
+		
+		// Log stack trace for arrivals
+		if (Create.LOGGER.isDebugEnabled()) {
+			StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+			StringBuilder sb = new StringBuilder("[TRAIN-DEBUG] Arrival stack trace:\n");
+			for (int i = 2; i < Math.min(stackTrace.length, 15); i++) {
+				sb.append("  at ").append(stackTrace[i].toString()).append("\n");
+			}
+			Create.LOGGER.debug(sb.toString());
+		}
 		
 		setCurrentStation(station);
 		reservedSignalBlocks.clear();
