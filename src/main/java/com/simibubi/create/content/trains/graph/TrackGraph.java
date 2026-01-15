@@ -15,6 +15,8 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import com.simibubi.create.content.trains.station.GlobalStation;
+
 import org.jetbrains.annotations.Nullable;
 
 import com.simibubi.create.Create;
@@ -84,7 +86,7 @@ public class TrackGraph {
 				station.name,
 				point.id != null ? point.id.toString().substring(0, 8) : "null");
 		}
-		
+
 		edgePoints.put(type, point);
 		EdgePointManager.onEdgePointAdded(this, point, type);
 		Create.RAILWAYS.sync.pointAdded(this, point);
@@ -93,14 +95,14 @@ public class TrackGraph {
 
 	public <T extends TrackEdgePoint> T getPoint(EdgePointType<T> type, UUID id) {
 		T point = edgePoints.get(type, id);
-		
+
 		// DEBUG: Log station lookups that return null
 		if (type == EdgePointType.STATION && point == null && id != null) {
 			Create.LOGGER.warn("[GRAPH-DEBUG] Graph {} getPoint() STATION {} returned NULL (not found in graph!)",
 				this.id != null ? this.id.toString().substring(0, 8) : "null",
 				id.toString().substring(0, 8));
 		}
-		
+
 		return point;
 	}
 
@@ -112,7 +114,7 @@ public class TrackGraph {
 		T removed = edgePoints.remove(type, id);
 		if (removed == null)
 			return null;
-		
+
 		// DEBUG: Log point removal (especially stations)
 		if (type == EdgePointType.STATION) {
 			GlobalStation station = (GlobalStation) removed;
@@ -121,7 +123,7 @@ public class TrackGraph {
 				station.name,
 				removed.id != null ? removed.id.toString().substring(0, 8) : "null");
 		}
-		
+
 		EdgePointManager.onEdgePointRemoved(this, removed, type);
 		Create.RAILWAYS.sync.pointRemoved(this, removed);
 		markDirty();

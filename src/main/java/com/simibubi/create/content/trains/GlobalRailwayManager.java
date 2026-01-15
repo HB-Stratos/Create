@@ -1,6 +1,7 @@
 package com.simibubi.create.content.trains;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -9,6 +10,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
+import com.simibubi.create.Create;
+
+import com.simibubi.create.content.trains.graph.EdgePointType;
+import com.simibubi.create.content.trains.station.GlobalStation;
 
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.jetbrains.annotations.Nullable;
@@ -79,10 +85,10 @@ public class GlobalRailwayManager {
 		MinecraftServer server = level.getServer();
 		if (server == null || server.overworld() != level)
 			return;
-		
+
 		// DEBUG: Log level load
 		Create.LOGGER.info("[RAILWAY-MGR-DEBUG] levelLoaded() called, cleaning up and loading track data");
-		
+
 		cleanUp();
 		savedData = null;
 		loadTrackData(server);
@@ -91,19 +97,19 @@ public class GlobalRailwayManager {
 	private void loadTrackData(MinecraftServer server) {
 		if (savedData != null)
 			return;
-		
+
 		Create.LOGGER.info("[RAILWAY-MGR-DEBUG] loadTrackData() starting");
-		
+
 		savedData = RailwaySavedData.load(server);
 		trains = savedData.getTrains();
 		trackNetworks = savedData.getTrackNetworks();
 		signalEdgeGroups = savedData.getSignalBlocks();
 		movingTrains.addAll(trains.values());
-		
+
 		// DEBUG: Log loaded data
 		Create.LOGGER.info("[RAILWAY-MGR-DEBUG] Loaded {} trains, {} track networks, {} signal groups",
 			trains.size(), trackNetworks.size(), signalEdgeGroups.size());
-		
+
 		// DEBUG: Log each train and its current station
 		for (Train train : trains.values()) {
 			String trainId = train.id != null ? train.id.toString().substring(0, 8) : "null";
@@ -112,7 +118,7 @@ public class GlobalRailwayManager {
 			Create.LOGGER.info("[RAILWAY-MGR-DEBUG] Train {} ({}): currentStation UUID = {}",
 				trainId, trainName, stationId);
 		}
-		
+
 		// DEBUG: Log each track network and its stations
 		for (TrackGraph graph : trackNetworks.values()) {
 			String graphId = graph.id != null ? graph.id.toString().substring(0, 8) : "null";
