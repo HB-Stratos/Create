@@ -96,9 +96,9 @@ public class TrackGraph {
 	public <T extends TrackEdgePoint> T getPoint(EdgePointType<T> type, UUID id) {
 		T point = edgePoints.get(type, id);
 
-		// DEBUG: Log station lookups that return null
+		// DEBUG: Log station lookups that return null (DEBUG level to avoid spam during normal graph searches)
 		if (type == EdgePointType.STATION && point == null && id != null) {
-			Create.LOGGER.warn("[GRAPH-DEBUG] Graph {} getPoint() STATION {} returned NULL (not found in graph!)",
+			Create.LOGGER.debug("[GRAPH-DEBUG] Graph {} getPoint() STATION {} not found in this graph (normal during multi-graph search)",
 				this.id != null ? this.id.toString().substring(0, 8) : "null",
 				id.toString().substring(0, 8));
 		}
