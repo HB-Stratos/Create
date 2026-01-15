@@ -148,6 +148,27 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 			name, id != null ? id.toString().substring(0, 8) : "null",
 			previousTrainId, previousDistance, newTrainId, trainName, newDistance, trainCurrentStationStr, trainNavigationActive);
 		
+		// CRITICAL BUG DETECTION: Before updating reservation, check if another train is actually at this station
+		for (Train otherTrain : Create.RAILWAYS.trains.values()) {
+			GlobalStation otherTrainStation = otherTrain.getCurrentStation();
+			if (otherTrainStation == this && otherTrain != train) {
+				// Found a train that's actually here but we're about to reserve for a different train!
+				String otherTrainId = otherTrain.id.toString().substring(0, 8);
+				String otherTrainName = otherTrain.name != null ? otherTrain.name.getString() : "unknown";
+				
+				Create.LOGGER.error("!!!!! BUG CREATION POINT DETECTED !!!!! Station '{}' (ID: {}):", 
+					name, id != null ? id.toString().substring(0, 8) : "null");
+				Create.LOGGER.error("  -> About to reserve for train {} ({}) with distance {}", 
+					newTrainId, trainName, newDistance);
+				Create.LOGGER.error("  -> But train {} ({}) is ALREADY HERE (currentStation points to us)!", 
+					otherTrainId, otherTrainName);
+				Create.LOGGER.error("  -> This will create the desynchronization bug! Set breakpoint here!");
+				
+				// Log full stack trace
+				Create.LOGGER.error("Stack trace showing bug creation:", new Exception("Bug creation marker"));
+			}
+		}
+		
 		if (nearestTrain == null
 			|| nearestTrain.navigation.distanceToDestination > train.navigation.distanceToDestination) {
 			this.nearestTrain = new WeakReference<>(train);
@@ -217,6 +238,35 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 		Create.LOGGER.debug("[STATION-DEBUG] Station '{}' (ID: {}) getPresentTrain(): nearest={}, trainStation={}, present={}",
 			name, id != null ? id.toString().substring(0, 8) : "null",
 			nearestId, trainStationId, isPresent);
+		
+		// CRITICAL BUG DETECTION: Check if a different train thinks it's at this station
+		// This is the exact bug condition we're trying to catch
+		if (nearestTrain != null && trainStation != this) {
+			// Check all trains to see if any think they're at this station
+			for (Train otherTrain : Create.RAILWAYS.trains.values()) {
+				GlobalStation otherTrainStation = otherTrain.getCurrentStation();
+				if (otherTrainStation == this) {
+					// BUG DETECTED! nearestTrain points to one train, but a different train is actually here
+					String otherTrainId = otherTrain.id.toString().substring(0, 8);
+					String otherTrainName = otherTrain.name != null ? otherTrain.name.getString() : "unknown";
+					String nearestTrainName = nearestTrain.name != null ? nearestTrain.name.getString() : "unknown";
+					
+					Create.LOGGER.error("!!!!! BUG DETECTED !!!!! Station '{}' (ID: {}) has desynchronized state:", 
+						name, id != null ? id.toString().substring(0, 8) : "null");
+					Create.LOGGER.error("  -> nearestTrain points to: {} ({}) with currentStation: {}", 
+						nearestId, nearestTrainName, trainStationId);
+					Create.LOGGER.error("  -> but train {} ({}) has currentStation pointing HERE!", 
+						otherTrainId, otherTrainName);
+					Create.LOGGER.error("  -> This is the exact bug condition! Set breakpoint here!");
+					
+					// Log stack trace to see how we got here
+					Create.LOGGER.error("Stack trace showing detection point:", new Exception("Bug detection marker"));
+					
+					// Return null since we don't have the correct train referenced
+					return null;
+				}
+			}
+		}
 		
 		if (nearestTrain == null || nearestTrain.getCurrentStation() != this)
 			return null;
