@@ -4,6 +4,7 @@ import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.UUID;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -63,15 +64,15 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 		super.read(nbt, registries, migration, dimensions);
 		name = nbt.getString("Name");
 		assembling = nbt.getBoolean("Assembling");
-		
+
 		// DEBUG: Log station load and WeakReference reset
 		Train previousTrain = nearestTrain != null ? nearestTrain.get() : null;
-		Create.LOGGER.info("[STATION-DEBUG] Loading station '{}' (ID: {}). Previous nearestTrain: {}", 
+		Create.LOGGER.info("[STATION-DEBUG] Loading station '{}' (ID: {}). Previous nearestTrain: {}",
 			name, id != null ? id.toString().substring(0, 8) : "null",
 			previousTrain != null ? previousTrain.id.toString().substring(0, 8) : "null");
-		
+
 		nearestTrain = new WeakReference<>(null);
-		
+
 		// DEBUG: Log after reset
 		Create.LOGGER.info("[STATION-DEBUG] Station '{}' (ID: {}) WeakReference reset to null during deserialization",
 			name, id != null ? id.toString().substring(0, 8) : "null");
@@ -133,7 +134,7 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 
 	public void reserveFor(Train train) {
 		Train nearestTrain = getNearestTrain();
-		
+
 		// DEBUG: Log reservation attempt with full details
 		String previousTrainId = nearestTrain != null ? nearestTrain.id.toString().substring(0, 8) : "null";
 		String newTrainId = train != null ? train.id.toString().substring(0, 8) : "null";
@@ -143,11 +144,11 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 		UUID trainCurrentStation = train != null && train.currentStation != null ? train.currentStation : null;
 		String trainCurrentStationStr = trainCurrentStation != null ? trainCurrentStation.toString().substring(0, 8) : "null";
 		boolean trainNavigationActive = train != null && train.navigation != null && train.navigation.isActive();
-		
+
 		Create.LOGGER.info("[STATION-DEBUG] Station '{}' (ID: {}) reserveFor() called. Previous: {} (dist: {}), New: {} ({}, dist: {}, currentStation: {}, navActive: {})",
 			name, id != null ? id.toString().substring(0, 8) : "null",
 			previousTrainId, previousDistance, newTrainId, trainName, newDistance, trainCurrentStationStr, trainNavigationActive);
-		
+
 		// CRITICAL BUG DETECTION: Before updating reservation, check if another train is actually at this station
 		for (Train otherTrain : Create.RAILWAYS.trains.values()) {
 			GlobalStation otherTrainStation = otherTrain.getCurrentStation();
@@ -155,26 +156,26 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 				// Found a train that's actually here but we're about to reserve for a different train!
 				String otherTrainId = otherTrain.id.toString().substring(0, 8);
 				String otherTrainName = otherTrain.name != null ? otherTrain.name.getString() : "unknown";
-				
-				Create.LOGGER.error("!!!!! BUG CREATION POINT DETECTED !!!!! Station '{}' (ID: {}):", 
+
+				Create.LOGGER.error("!!!!! BUG CREATION POINT DETECTED !!!!! Station '{}' (ID: {}):",
 					name, id != null ? id.toString().substring(0, 8) : "null");
-				Create.LOGGER.error("  -> About to reserve for train {} ({}) with distance {}", 
+				Create.LOGGER.error("  -> About to reserve for train {} ({}) with distance {}",
 					newTrainId, trainName, newDistance);
-				Create.LOGGER.error("  -> But train {} ({}) is ALREADY HERE (currentStation points to us)!", 
+				Create.LOGGER.error("  -> But train {} ({}) is ALREADY HERE (currentStation points to us)!",
 					otherTrainId, otherTrainName);
 				Create.LOGGER.error("  -> This will create the desynchronization bug! Set breakpoint here!");
-				
+
 				// Log full stack trace
 				Create.LOGGER.error("Stack trace showing bug creation:", new Exception("Bug creation marker"));
 			}
 		}
-		
+
 		if (nearestTrain == null
 			|| nearestTrain.navigation.distanceToDestination > train.navigation.distanceToDestination) {
 			this.nearestTrain = new WeakReference<>(train);
 			Create.LOGGER.info("[STATION-DEBUG] Station '{}' reservation UPDATED to train {} ({}). Previous distance: {}, New distance: {}",
 				name, newTrainId, trainName, previousDistance, newDistance);
-			
+
 			// Log stack trace for reservation changes to identify all code paths
 			if (Create.LOGGER.isDebugEnabled()) {
 				StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
@@ -194,14 +195,14 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 		String trainId = train != null ? train.id.toString().substring(0, 8) : "null";
 		Train current = nearestTrain.get();
 		String currentId = current != null ? current.id.toString().substring(0, 8) : "null";
-		
+
 		Create.LOGGER.info("[STATION-DEBUG] Station '{}' (ID: {}) cancelReservation() for train {}. Current: {}",
 			name, id != null ? id.toString().substring(0, 8) : "null", trainId, currentId);
-		
+
 		if (nearestTrain.get() == train) {
 			nearestTrain = new WeakReference<>(null);
 			Create.LOGGER.info("[STATION-DEBUG] Station '{}' reservation CLEARED for train {}", name, trainId);
-			
+
 			// Log stack trace for cancellation to identify all code paths
 			if (Create.LOGGER.isDebugEnabled()) {
 				StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
@@ -228,17 +229,17 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 	@Nullable
 	public Train getPresentTrain() {
 		Train nearestTrain = getNearestTrain();
-		
+
 		// DEBUG: Log query
 		String nearestId = nearestTrain != null ? nearestTrain.id.toString().substring(0, 8) : "null";
 		GlobalStation trainStation = nearestTrain != null ? nearestTrain.getCurrentStation() : null;
 		String trainStationId = trainStation != null && trainStation.id != null ? trainStation.id.toString().substring(0, 8) : "null";
 		boolean isPresent = nearestTrain != null && trainStation == this;
-		
+
 		Create.LOGGER.debug("[STATION-DEBUG] Station '{}' (ID: {}) getPresentTrain(): nearest={}, trainStation={}, present={}",
 			name, id != null ? id.toString().substring(0, 8) : "null",
 			nearestId, trainStationId, isPresent);
-		
+
 		// CRITICAL BUG DETECTION: Check if a different train thinks it's at this station
 		// This is the exact bug condition we're trying to catch
 		if (nearestTrain != null && trainStation != this) {
@@ -250,24 +251,24 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 					String otherTrainId = otherTrain.id.toString().substring(0, 8);
 					String otherTrainName = otherTrain.name != null ? otherTrain.name.getString() : "unknown";
 					String nearestTrainName = nearestTrain.name != null ? nearestTrain.name.getString() : "unknown";
-					
-					Create.LOGGER.error("!!!!! BUG DETECTED !!!!! Station '{}' (ID: {}) has desynchronized state:", 
+
+					Create.LOGGER.error("!!!!! BUG DETECTED !!!!! Station '{}' (ID: {}) has desynchronized state:",
 						name, id != null ? id.toString().substring(0, 8) : "null");
-					Create.LOGGER.error("  -> nearestTrain points to: {} ({}) with currentStation: {}", 
+					Create.LOGGER.error("  -> nearestTrain points to: {} ({}) with currentStation: {}",
 						nearestId, nearestTrainName, trainStationId);
-					Create.LOGGER.error("  -> but train {} ({}) has currentStation pointing HERE!", 
+					Create.LOGGER.error("  -> but train {} ({}) has currentStation pointing HERE!",
 						otherTrainId, otherTrainName);
 					Create.LOGGER.error("  -> This is the exact bug condition! Set breakpoint here!");
-					
+
 					// Log stack trace to see how we got here
 					Create.LOGGER.error("Stack trace showing detection point:", new Exception("Bug detection marker"));
-					
+
 					// Return null since we don't have the correct train referenced
 					return null;
 				}
 			}
 		}
-		
+
 		if (nearestTrain == null || nearestTrain.getCurrentStation() != this)
 			return null;
 		return nearestTrain;
@@ -290,7 +291,7 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 	@Nullable
 	public Train getNearestTrain() {
 		Train train = this.nearestTrain.get();
-		
+
 		/* FIX COMMENTED OUT FOR INSTRUMENTATION - Uncomment to enable auto-revalidation fix
 		// If the WeakReference is null, check if any train thinks it's at this station
 		// This handles the case where the station was reloaded but the train wasn't
@@ -298,11 +299,11 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 			train = revalidateTrainPresence();
 		}
 		*/
-		
+
 		// DEBUG: Log every getNearestTrain() call to track null returns
 		String trainId = train != null ? train.id.toString().substring(0, 8) : "null";
 		String trainName = train != null && train.name != null ? train.name.getString() : "unknown";
-		
+
 		if (train == null) {
 			Create.LOGGER.debug("[STATION-DEBUG] Station '{}' (ID: {}) getNearestTrain() returned NULL (WeakReference empty)",
 				name, id != null ? id.toString().substring(0, 8) : "null");
@@ -310,10 +311,10 @@ public class GlobalStation extends SingleBlockEntityEdgePoint {
 			Create.LOGGER.debug("[STATION-DEBUG] Station '{}' (ID: {}) getNearestTrain() returned train {} ({})",
 				name, id != null ? id.toString().substring(0, 8) : "null", trainId, trainName);
 		}
-		
+
 		return train;
 	}
-	
+
 	/* FIX COMMENTED OUT FOR INSTRUMENTATION - Revalidation method
 	@Nullable
 	private Train revalidateTrainPresence() {
