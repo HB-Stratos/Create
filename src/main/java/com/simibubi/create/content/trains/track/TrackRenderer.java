@@ -7,6 +7,7 @@ import static com.simibubi.create.AllPartialModels.GIRDER_SEGMENT_TOP;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.PoseStack.Pose;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.simibubi.create.Create;
 import com.simibubi.create.content.trains.track.BezierConnection.GirderAngles;
 import com.simibubi.create.content.trains.track.BezierConnection.SegmentAngles;
 import com.simibubi.create.foundation.blockEntity.renderer.SafeBlockEntityRenderer;
@@ -44,7 +45,16 @@ public class TrackRenderer extends SafeBlockEntityRenderer<TrackBlockEntity> {
 	}
 
 	public static void renderBezierTurn(Level level, BezierConnection bc, PoseStack ms, VertexConsumer vb) {
-		if (!bc.isPrimary())
+
+		// bc.bePositions.getSecondary() always seems to be the rail currently not trying to render
+		// and getPrimary() is us... Unless both are loaded, and not sure if reliable.
+
+		boolean isPrimaryLoaded = bc.isPrimary()
+			// check if only one end is loaded (XOR), and if it's not primary it must be secondary.
+			|| !(level.isLoaded(bc.bePositions.getSecond()) ^ level.isLoaded(bc.bePositions.getFirst())
+		);
+
+		if (!bc.isPrimary() && isPrimaryLoaded )
 			return;
 
 		ms.pushPose();
