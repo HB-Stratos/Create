@@ -100,7 +100,7 @@ public class Navigation {
 		String trainId = train.id != null ? train.id.toString().substring(0, 8) : "null";
 		UUID trainCurrentStation = train.currentStation;
 		String currentStationStr = trainCurrentStation != null ? trainCurrentStation.toString().substring(0, 8) : "null";
-		
+
 		Create.LOGGER.debug("[NAV-DEBUG] Train {} calling destination.reserveFor(). Dest: {} ({}), distToDest: {}, trainCurrentStation: {}, destBehind: {}",
 			trainId, destId, destination.name, distanceToDestination, currentStationStr, destinationBehindTrain);
 
@@ -386,10 +386,10 @@ public class Navigation {
 		String destId = destination != null ? (destination.id != null ? destination.id.toString().substring(0, 8) : "null") : "null";
 		String destName = destination != null ? destination.name : "null";
 		String trainId = train.id != null ? train.id.toString().substring(0, 8) : "null";
-		
+
 		Create.LOGGER.info("[NAV-DEBUG] Train {} cancelNavigation(). Destination: {} ({})",
 			trainId, destId, destName);
-		
+
 		// Log stack trace for cancellation
 		if (Create.LOGGER.isDebugEnabled()) {
 			StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
@@ -399,7 +399,7 @@ public class Navigation {
 			}
 			Create.LOGGER.debug(sb.toString());
 		}
-		
+
 		distanceToDestination = 0;
 		currentPath.clear();
 		if (destination == null)
@@ -461,15 +461,19 @@ public class Navigation {
 			train.status.foundConductor();
 		}
 
+		// clean up old reservation after switching to new destination
+		if (this.destination != pathTo.destination && this.destination != null)
+			this.destination.cancelReservation(train);
+
 		// DEBUG: Log destination change
 		String oldDest = this.destination != null ? (this.destination.id != null ? this.destination.id.toString().substring(0, 8) : "null") : "null";
 		String newDest = pathTo.destination != null ? (pathTo.destination.id != null ? pathTo.destination.id.toString().substring(0, 8) : "null") : "null";
 		String trainId = train.id != null ? train.id.toString().substring(0, 8) : "null";
-		
+
 		if (this.destination != pathTo.destination) {
 			Create.LOGGER.info("[NAV-DEBUG] Train {} destination changing: {} -> {} ({}). Distance: {}, Behind: {}",
 				trainId, oldDest, newDest, pathTo.destination.name, pathTo.distance, destinationBehindTrain);
-			
+
 			// Log stack trace for destination changes
 			if (Create.LOGGER.isDebugEnabled()) {
 				StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
