@@ -15,6 +15,8 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import com.simibubi.create.content.trains.station.GlobalStation;
+
 import org.jetbrains.annotations.Nullable;
 
 import com.simibubi.create.Create;
@@ -76,6 +78,15 @@ public class TrackGraph {
 	//
 
 	public <T extends TrackEdgePoint> void addPoint(EdgePointType<T> type, T point) {
+		// DEBUG: Log point addition (especially stations)
+		if (type == EdgePointType.STATION) {
+			GlobalStation station = (GlobalStation) point;
+			Create.LOGGER.info("[GRAPH-DEBUG] Graph {} addPoint() STATION: '{}' (ID: {})",
+				id != null ? id.toString().substring(0, 8) : "null",
+				station.name,
+				point.id != null ? point.id.toString().substring(0, 8) : "null");
+		}
+
 		edgePoints.put(type, point);
 		EdgePointManager.onEdgePointAdded(this, point, type);
 		Create.RAILWAYS.sync.pointAdded(this, point);
@@ -83,7 +94,16 @@ public class TrackGraph {
 	}
 
 	public <T extends TrackEdgePoint> T getPoint(EdgePointType<T> type, UUID id) {
-		return edgePoints.get(type, id);
+		T point = edgePoints.get(type, id);
+
+		// DEBUG: Log station lookups that return null (DEBUG level to avoid spam during normal graph searches)
+		if (type == EdgePointType.STATION && point == null && id != null) {
+			Create.LOGGER.debug("[GRAPH-DEBUG] Graph {} getPoint() STATION {} not found in this graph (normal during multi-graph search)",
+				this.id != null ? this.id.toString().substring(0, 8) : "null",
+				id.toString().substring(0, 8));
+		}
+
+		return point;
 	}
 
 	public <T extends TrackEdgePoint> Collection<T> getPoints(EdgePointType<T> type) {
@@ -94,6 +114,16 @@ public class TrackGraph {
 		T removed = edgePoints.remove(type, id);
 		if (removed == null)
 			return null;
+
+		// DEBUG: Log point removal (especially stations)
+		if (type == EdgePointType.STATION) {
+			GlobalStation station = (GlobalStation) removed;
+			Create.LOGGER.info("[GRAPH-DEBUG] Graph {} removePoint() STATION: '{}' (ID: {})",
+				this.id != null ? this.id.toString().substring(0, 8) : "null",
+				station.name,
+				removed.id != null ? removed.id.toString().substring(0, 8) : "null");
+		}
+
 		EdgePointManager.onEdgePointRemoved(this, removed, type);
 		Create.RAILWAYS.sync.pointRemoved(this, removed);
 		markDirty();

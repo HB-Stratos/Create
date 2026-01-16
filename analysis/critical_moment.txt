@@ -1,0 +1,16 @@
+153659	[15Jan.2026 06:05:47.689] [Server thread/INFO] [com.simibubi.create.Create/]: [STATION-BE-DEBUG] Station 'Track Station' (ID: 7ae0c6de): imminent=c8c91d08, trainCurrentStation=7ae0c6de (Track Station), match=true, trainPresent=true
+153660	[15Jan.2026 06:05:47.689] [Server thread/INFO] [com.simibubi.create.Create/]: [STATION-BE-DEBUG] Station 'Loader 2c' (ID: 9707c882): imminent=4b5f0ef9, trainCurrentStation=null (unknown), match=false, trainPresent=false
+153661	[15Jan.2026 06:05:47.690] [Server thread/WARN] [com.simibubi.create.Create/]: [GRAPH-DEBUG] Graph 2f87e416 getPoint() STATION a3466385 returned NULL (not found in graph!)
+153662	[15Jan.2026 06:05:47.690] [Server thread/WARN] [com.simibubi.create.Create/]: [TRAIN-DEBUG] Train a9070802 getCurrentStation() returned NULL but currentStation UUID is a3466385 (station not found in graph!)
+153663	[15Jan.2026 06:05:47.690] [Server thread/INFO] [com.simibubi.create.Create/]: [STATION-DEBUG] Station 'Loader 2c' (ID: 9707c882) reserveFor() called. Previous: 4b5f0ef9, New: 4b5f0ef9 (Test Train 1)
+153664	[15Jan.2026 06:05:47.690] [Server thread/INFO] [com.simibubi.create.Create/]: [STATION-DEBUG] Station 'Loader 2c' reservation kept with train 4b5f0ef9 (closer)
+153665	[15Jan.2026 06:05:47.690] [Server thread/INFO] [com.simibubi.create.Create/]: [STATION-DEBUG] Station 'Loader 1' (ID: aa4feb96) reserveFor() called. Previous: null, New: 4471ce2f (Test Train 3)
+153666	[15Jan.2026 06:05:47.690] [Server thread/INFO] [com.simibubi.create.Create/]: [STATION-DEBUG] Station 'Loader 1' reservation updated to train 4471ce2f (Test Train 3)
+153667	[15Jan.2026 06:05:47.690] [Server thread/INFO] [com.simibubi.create.Create/]: [TRAIN-DEBUG] Train 4471ce2f (Test Train 3) leaveStation(). Current station: f39bb7f7 (Yard Lead 2a)
+153668	[15Jan.2026 06:05:47.690] [Server thread/INFO] [com.simibubi.create.Create/]: [STATION-DEBUG] Station 'Yard Lead 2a' (ID: f39bb7f7) trainDeparted() for train 4471ce2f (Test Train 3)
+153669	[15Jan.2026 06:05:47.690] [Server thread/INFO] [com.simibubi.create.Create/]: [STATION-DEBUG] Station 'Yard Lead 2a' (ID: f39bb7f7) cancelReservation() for train 4471ce2f. Current: 4471ce2f
+153670	[15Jan.2026 06:05:47.690] [Server thread/INFO] [com.simibubi.create.Create/]: [STATION-DEBUG] Station 'Yard Lead 2a' reservation cleared
+153671	[15Jan.2026 06:05:47.690] [Server thread/INFO] [com.simibubi.create.Create/]: [TRAIN-DEBUG] Train 4471ce2f (Test Train 3) currentStation UUID cleared
+153672	[15Jan.2026 06:05:47.741] [Server thread/INFO] [com.simibubi.create.Create/]: [STATION-BE-DEBUG] Station '2' (ID: 5613bafb): imminent=e4e2b278, trainCurrentStation=5613bafb (2), match=true, trainPresent=true
+153673	[15Jan.2026 06:05:47.741] [Server thread/INFO] [com.simibubi.create.Create/]: [STATION-BE-DEBUG] Station 'Track Station' (ID: 1948e9cd): imminent=7702400c, trainCurrentStation=1948e9cd (Track Station), match=true, trainPresent=true
+153674	[15Jan.2026 06:05:47.742] [Server thread/INFO] [com.simibubi.create.Create/]: [STATION-BE-DEBUG] Station 'Yard Lead 2a' (ID: f39bb7f7): Train presence changed! Was: true, Now: false
